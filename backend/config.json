@@ -1,0 +1,13 @@
+{
+    "db": {
+        "host": "localhost",
+        "database": "sport_shop",
+        "user": "postgres",
+        "password": "123",
+        "port": 5432
+    },
+    "app": {
+        "secret_key": "2a1b0c9d",
+        "port": 8000
+    }
+}

@@ -1,0 +1,6 @@
+PySide6==6.8.0.2
+psycopg2-binary>=2.9.10
+python-dotenv==1.0.0
+pywebview==4.0.2
+waitress==2.1.2
+flask>=2.0.0

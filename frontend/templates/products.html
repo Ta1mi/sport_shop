@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Наши товары</h2>
+
+<div class="categories">
+    <button class="category-btn active" data-category="all">Все</button>
+    <button class="category-btn" data-category="fitness">Фитнес</button>
+    <button class="category-btn" data-category="running">Бег</button>
+    <button class="category-btn" data-category="yoga">Йога</button>
+</div>
+
+<div class="products-grid">
+    {% for product in products %}
+    <div class="product-card" data-category="{{ product.category }}">
+        {% if product.image_url %}
+        <img src="{{ product.image_url }}" alt="{{ product.name }}">
+        {% else %}
+        <div class="no-image">Нет изображения</div>
+        {% endif %}
+        <h3>{{ product.name }}</h3>
+        <p class="price">{{ product.price }} ₽</p>
+        <p class="quantity">Осталось: {{ product.quantity }}</p>
+        <button class="add-to-cart" data-id="{{ product.id }}">В корзину</button>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
