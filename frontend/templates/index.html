@@ -18,7 +18,7 @@
                     <li><a href="/"><i class="fas fa-home"></i> Главная</a></li>
                     <li><a href="/products"><i class="fas fa-list"></i> Товары</a></li>
                     <li><a href="/cart"><i class="fas fa-shopping-cart"></i> Корзина</a></li>
-                    {% if current_user %}
+                    {% if 'user' in session %}
                         <li><a href="/profile"><i class="fas fa-user"></i> Профиль</a></li>
                         <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
                     {% else %}
@@ -35,12 +35,39 @@
             <div class="hero-content">
                 <h2>Лучшие спортивные товары</h2>
                 <p>Оборудование для профессионалов и любителей</p>
-                <a href="/products" class="btn">Смотреть каталог</a>
+                <div class="hero-buttons">
+                    <a href="/products" class="btn btn-primary">
+                        <i class="fas fa-store"></i> В магазин
+                    </a>
+                    {% if 'user' not in session %}
+                    <a href="/login" class="btn btn-secondary">
+                        <i class="fas fa-user"></i> Личный кабинет
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="feature-card">
+                <i class="fas fa-shipping-fast"></i>
+                <h3>Быстрая доставка</h3>
+                <p>Доставка по всей России за 1-3 дня</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Гарантия качества</h3>
+                <p>Официальная гарантия на все товары</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-headset"></i>
+                <h3>Поддержка 24/7</h3>
+                <p>Круглосуточная поддержка клиентов</p>
             </div>
         </section>
 
         <section class="categories">
-            <h2>Категории</h2>
+            <h2><i class="fas fa-tags"></i> Популярные категории</h2>
             <div class="category-grid">
                 <a href="/products?category=Футбол" class="category-card">
                     <div class="category-icon">
@@ -70,10 +97,23 @@
         </section>
 
         <section class="featured-products">
-            <h2>Популярные товары</h2>
+            <h2><i class="fas fa-star"></i> Популярные товары</h2>
             <div class="product-grid" id="featured-products">
-                <!-- Товары будут загружаться через JavaScript -->
+                <div class="loader">
+                    <i class="fas fa-spinner fa-spin"></i> Загрузка товаров...
+                </div>
             </div>
+        </section>
+
+        <section class="newsletter">
+            <h3>Подпишитесь на рассылку</h3>
+            <p>Получайте эксклюзивные предложения и новости первыми</p>
+            <form id="newsletter-form">
+                <input type="email" placeholder="Ваш email" required>
+                <button type="submit" class="btn">
+                    <i class="fas fa-paper-plane"></i> Подписаться
+                </button>
+            </form>
         </section>
     </main>
 
@@ -106,29 +146,65 @@
 
     <script src="/static/js/main.js"></script>
     <script>
+    document.addEventListener('DOMContentLoaded', function() {
         // Загрузка популярных товаров
-        document.addEventListener('DOMContentLoaded', function() {
-            fetch('/api/products/featured')
-                .then(response => response.json())
-                .then(products => {
-                    const container = document.getElementById('featured-products');
-                    products.forEach(product => {
-                        container.innerHTML += `
-                            <div class="product-card">
-                                <div class="product-image">
-                                    ${product.image_url ? 
-                                        `<img src="${product.image_url}" alt="${product.name}">` : 
-                                        `<div class="no-image"><i class="fas fa-image"></i></div>`}
-                                </div>
-                                <h3>${product.name}</h3>
-                                <p class="price">${product.price.toFixed(2)} ₽</p>
-                                <button class="btn" onclick="addToCart(${product.id})">
-                                    <i class="fas fa-cart-plus"></i> В корзину
-                                </button>
+        fetch('/api/products/featured')
+            .then(response => response.json())
+            .then(products => {
+                const container = document.getElementById('featured-products');
+                container.innerHTML = '';
+                
+                if (products.length === 0) {
+                    container.innerHTML = '<p class="no-products">Нет рекомендуемых товаров</p>';
+                    return;
+                }
+
+                products.forEach(product => {
+                    container.innerHTML += `
+                        <div class="product-card">
+                            <div class="product-image">
+                                ${product.image_url ? 
+                                    `<img src="${product.image_url}" alt="${product.name}">` : 
+                                    `<div class="no-image"><i class="fas fa-image"></i></div>`}
                             </div>
-                        `;
+                            <h3>${product.name}</h3>
+                            <p class="price">${product.price.toFixed(2)} ₽</p>
+                            <button class="btn add-to-cart" data-id="${product.id}">
+                                <i class="fas fa-cart-plus"></i> В корзину
+                            </button>
+                        </div>
+                    `;
+                });
+
+                // Инициализация кнопок корзины
+                document.querySelectorAll('.add-to-cart').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const productId = this.dataset.id;
+                        addToCart(productId);
                     });
                 });
+            });
+
+        // Подписка на рассылку
+        document.getElementById('newsletter-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = this.querySelector('input').value;
+            
+            fetch('/api/newsletter/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || 'Спасибо за подписку!');
+                this.reset();
+            })
+            .catch(error => {
+                alert('Ошибка при подписке. Пожалуйста, попробуйте позже.');
+            });
         });
 
         function addToCart(productId) {
@@ -142,12 +218,27 @@
             .then(response => response.json())
             .then(data => {
                 if(data.success) {
-                    alert('Товар добавлен в корзину!');
+                    showNotification('Товар добавлен в корзину!');
                 } else {
-                    alert('Ошибка: ' + data.message);
+                    showNotification('Ошибка: ' + data.message, 'error');
                 }
             });
         }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i>
+                ${message}
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    });
     </script>
 </body>
 </html>

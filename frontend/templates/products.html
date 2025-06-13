@@ -1,28 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Наши товары</h2>
-
-<div class="categories">
-    <button class="category-btn active" data-category="all">Все</button>
-    <button class="category-btn" data-category="fitness">Фитнес</button>
-    <button class="category-btn" data-category="running">Бег</button>
-    <button class="category-btn" data-category="yoga">Йога</button>
-</div>
-
-<div class="products-grid">
-    {% for product in products %}
-    <div class="product-card" data-category="{{ product.category }}">
-        {% if product.image_url %}
-        <img src="{{ product.image_url }}" alt="{{ product.name }}">
-        {% else %}
-        <div class="no-image">Нет изображения</div>
-        {% endif %}
-        <h3>{{ product.name }}</h3>
-        <p class="price">{{ product.price }} ₽</p>
-        <p class="quantity">Осталось: {{ product.quantity }}</p>
-        <button class="add-to-cart" data-id="{{ product.id }}">В корзину</button>
+<section class="products-section">
+    <h2><i class="fas fa-list"></i> Каталог товаров</h2>
+    
+    <div class="category-filter">
+        <a href="{{ url_for('products') }}" class="btn {% if not current_category %}active{% endif %}">
+            Все категории
+        </a>
+        {% for category in ['Футбол', 'Баскетбол', 'Фитнес', 'Теннис'] %}
+            <a href="{{ url_for('products', category=category) }}" 
+               class="btn {% if current_category == category %}active{% endif %}">
+                {{ category }}
+            </a>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
+    
+    <div class="product-grid">
+        {% for product in products %}
+        <div class="product-card" data-category="{{ product.category }}">
+            <div class="product-image">
+                {% if product.image_url %}
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                {% else %}
+                    <div class="no-image"><i class="fas fa-image"></i></div>
+                {% endif %}
+            </div>
+            <h3>{{ product.name }}</h3>
+            <p class="category-badge">{{ product.category }}</p>
+            <p class="price">{{ "%.2f"|format(product.price) }} ₽</p>
+            <p class="quantity">В наличии: {{ product.quantity }} шт.</p>
+            <button class="btn add-to-cart" data-id="{{ product.id }}">
+                <i class="fas fa-cart-plus"></i> В корзину
+            </button>
+        </div>
+        {% else %}
+        <p class="no-products">Товары не найдены</p>
+        {% endfor %}
+    </div>
+</section>
 {% endblock %}

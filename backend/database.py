@@ -6,13 +6,11 @@ from datetime import datetime
 
 class Database:
     def __init__(self, config_path: str = 'backend/config.json'):
-        """Инициализация подключения к PostgreSQL"""
         self.config_path = config_path
         self.conn = None
         self._connect()
 
     def _connect(self):
-        """Установка соединения с базой данных"""
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
@@ -31,13 +29,11 @@ class Database:
             raise
 
     def close(self):
-        """Закрытие соединения с базой данных"""
         if self.conn and not self.conn.closed:
             self.conn.close()
             print("🔌 Подключение к базе данных закрыто")
 
     def execute(self, query: str, params: Tuple = None, fetch: bool = False) -> Optional[List[Dict]]:
-        """Универсальный метод выполнения запросов"""
         try:
             with self.conn.cursor() as cursor:
                 cursor.execute(query, params or ())
@@ -52,9 +48,8 @@ class Database:
             raise
 
     def init_db(self):
-        """Инициализация структуры базы данных"""
         try:
-            # Создание таблицы пользователей
+            # Таблица пользователей
             self.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
@@ -66,7 +61,7 @@ class Database:
                 )
             """)
             
-            # Создание таблицы товаров
+            # Таблица товаров
             self.execute("""
                 CREATE TABLE IF NOT EXISTS products (
                     id SERIAL PRIMARY KEY,
@@ -82,7 +77,16 @@ class Database:
                 )
             """)
             
-            # Создание администратора по умолчанию
+            # Таблица подписчиков
+            self.execute("""
+                CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+                    id SERIAL PRIMARY KEY,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Администратор по умолчанию
             admin_password = sha256("admin123".encode()).hexdigest()
             self.execute(
                 "INSERT INTO users (username, password_hash, full_name, role) "
@@ -96,21 +100,7 @@ class Database:
             print(f"❌ Ошибка при инициализации БД: {e}")
             return False
 
-    def get_all_tables(self) -> List[str]:
-        """Получение списка всех таблиц в БД"""
-        try:
-            result = self.execute(
-                "SELECT table_name FROM information_schema.tables "
-                "WHERE table_schema = 'public'",
-                fetch=True
-            )
-            return [table['table_name'] for table in result] if result else []
-        except Exception as e:
-            print(f"❌ Ошибка при получении списка таблиц: {e}")
-            return []
-
     def create_user(self, username: str, password: str, full_name: str, role: str) -> bool:
-        """Создание нового пользователя"""
         password_hash = sha256(password.encode()).hexdigest()
         return self.execute(
             "INSERT INTO users (username, password_hash, full_name, role) "
@@ -119,7 +109,6 @@ class Database:
         ) is not None
 
     def get_user(self, user_id: int) -> Optional[Dict]:
-        """Получение пользователя по ID"""
         return self.execute(
             "SELECT * FROM users WHERE id = %s",
             (user_id,),
@@ -131,7 +120,6 @@ class Database:
         ) else None
 
     def add_product(self, product_data: Dict) -> Optional[int]:
-        """Добавление нового товара"""
         result = self.execute(
             "INSERT INTO products (name, category, price, quantity, description, supplier, image_url) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
@@ -149,41 +137,18 @@ class Database:
         return result[0]['id'] if result else None
 
     def get_all_products(self) -> List[Dict]:
-        """Получение всех товаров"""
         return self.execute(
             "SELECT * FROM products ORDER BY name",
             fetch=True
         ) or []
 
     def __enter__(self):
-        """Поддержка контекстного менеджера"""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Автоматическое закрытие соединения"""
         self.close()
 
-
 if __name__ == "__main__":
-    # Тестирование работы класса
     with Database() as db:
-        # Инициализация БД
         db.init_db()
-        
-        # Вывод списка таблиц
         print("Таблицы в БД:", db.get_all_tables())
-        
-        # Пример добавления товара
-        product_id = db.add_product({
-            'name': 'Баскетбольный мяч',
-            'category': 'Баскетбол',
-            'price': 1899.99,
-            'quantity': 15,
-            'description': 'Профессиональный мяч',
-            'supplier': 'Spalding'
-        })
-        print(f"Добавлен товар с ID: {product_id}")
-        
-        # Получение списка товаров
-        products = db.get_all_products()
-        print("Список товаров:", products)
